@@ -71,6 +71,7 @@ namespace cv { namespace vaapi {
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -80,8 +81,9 @@ namespace cv { namespace vaapi {
 #define VAAPI_DRI_DIR "/dev/dri/"
 #define VAAPI_PCI_DISPLAY_CONTROLLER_CLASS 0x03
 
-static int vaFDdrm = -1;
-static VADisplay vaDisplay = NULL;
+static int vaapiFDdrm = -1;
+static VADisplay vaapiVAdisplay = NULL;
+static bool vaapiVAinitialized = false;
 
 class Directory
 {
@@ -204,83 +206,70 @@ private:
     char* paths[NUM_NODES];
 };
 
-static void initVAdrm()
+static void vaapiInitDRM()
 {
-    const unsigned IntelVendorID = 0x8086;
-
-    vaFDdrm = -1;
-    vaDisplay = 0;
-
-    int adapterIndex = findAdapter(IntelVendorID);
-    if (adapterIndex >= 0)
+    if (!vaapiVAinitialized)
     {
-        NodeInfo nodes(adapterIndex);
+        const unsigned IntelVendorID = 0x8086;
 
-        for (int i = 0;  i < nodes.count();  ++i)
+        vaapiFDdrm = -1;
+        vaapiVAdisplay = 0;
+
+        int adapterIndex = findAdapter(IntelVendorID);
+        if (adapterIndex >= 0)
         {
-            vaFDdrm = open(nodes.path(i), O_RDWR);
-            if (vaFDdrm >= 0)
+            NodeInfo nodes(adapterIndex);
+
+            for (int i = 0;  i < nodes.count();  ++i)
             {
-                vaDisplay = vaGetDisplayDRM(vaFDdrm);
-                if (vaDisplay)
+                vaapiFDdrm = open(nodes.path(i), O_RDWR);
+                if (vaapiFDdrm >= 0)
                 {
-                    int majorVersion = 0, minorVersion = 0;
-                    if (vaInitialize(vaDisplay, &majorVersion, &minorVersion) == VA_STATUS_SUCCESS)
-                        return;
-                    vaDisplay = 0;
+                    vaapiVAdisplay = vaGetDisplayDRM(vaapiFDdrm);
+                    if (vaapiVAdisplay)
+                    {
+                        int majorVersion = 0, minorVersion = 0;
+                        if (vaInitialize(vaapiVAdisplay, &majorVersion, &minorVersion) == VA_STATUS_SUCCESS)
+                        {
+                            vaapiVAinitialized = true;
+                            return;
+                        }
+                        vaapiVAdisplay = 0;
+                    }
+                    close(vaapiFDdrm);
+                    vaapiFDdrm = -1;
                 }
-                close(vaFDdrm);
-                vaFDdrm = -1;
             }
         }
-    }
 
-    if (adapterIndex < 0)
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find Intel display adapter for VA-API interop");
-    if ((vaFDdrm < 0) || !vaDisplay)
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't load VA display for VA-API interop");
+        if (adapterIndex < 0)
+            CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find Intel display adapter for VA-API interop");
+        if ((vaapiFDdrm < 0) || !vaapiVAdisplay)
+            CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't load VA display for VA-API interop");
+    }
 }
 
-static void doneVA()
+static void vaapiDone()
 {
-    if (vaDisplay)
-        vaTerminate(vaDisplay);
-    if (vaFDdrm >= 0)
-        close(vaFDdrm);
-    vaDisplay = 0;
-    vaFDdrm = -1;
-}
-
-clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
-clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
-clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn  clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
-clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn  clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
-
-static void __OpenCLinitializeVA()
-{
-    using namespace cv::ocl;
-    static cl_platform_id initializedPlatform = NULL;
-    cl_platform_id platform = (cl_platform_id)Platform::getDefault().ptr();
-    if (initializedPlatform != platform)
+    if (vaapiVAinitialized)
     {
-        clGetDeviceIDsFromVA_APIMediaAdapterINTEL = (clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn)
-            clGetExtensionFunctionAddressForPlatform(platform, "clGetDeviceIDsFromVA_APIMediaAdapterINTEL");
-        clCreateFromVA_APIMediaSurfaceINTEL = (clCreateFromVA_APIMediaSurfaceINTEL_fn)
-            clGetExtensionFunctionAddressForPlatform(platform, "clCreateFromVA_APIMediaSurfaceINTEL");
-        clEnqueueAcquireVA_APIMediaSurfacesINTEL = (clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn)
-            clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueAcquireVA_APIMediaSurfacesINTEL");
-        clEnqueueReleaseVA_APIMediaSurfacesINTEL = (clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn)
-            clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueReleaseVA_APIMediaSurfacesINTEL");
-        initializedPlatform = platform;
-    }
-    if (!clGetDeviceIDsFromVA_APIMediaAdapterINTEL ||
-        !clCreateFromVA_APIMediaSurfaceINTEL ||
-        !clEnqueueAcquireVA_APIMediaSurfacesINTEL ||
-        !clEnqueueReleaseVA_APIMediaSurfacesINTEL)
-    {
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find functions for CL-VA Interop");
+        if (vaapiVAdisplay)
+            vaTerminate(vaapiVAdisplay);
+        if (vaapiFDdrm >= 0)
+            close(vaapiFDdrm);
+        vaapiVAdisplay = 0;
+        vaapiFDdrm = -1;
+        vaapiVAinitialized = false;
     }
 }
+
+static clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
+static clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
+static clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn  clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
+static clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn  clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
+
+static bool openclInitialized = false;
+
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
 namespace ocl {
@@ -292,10 +281,97 @@ Context& initializeContextFromVA()
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    __OpenCLinitializeVA();
+    if (!vaapiVAinitialized)
+    {
+        vaapiInitDRM();
+        if (vaapiVAinitialized)
+            atexit(vaapiDone);
+    }
+
+    cl_uint numPlatforms;
+    cl_int status = clGetPlatformIDs(0, NULL, &numPlatforms);
+    if (status != CL_SUCCESS)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't get number of platforms");
+    if (numPlatforms == 0)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: No available platforms");
+
+    std::vector<cl_platform_id> platforms(numPlatforms);
+    status = clGetPlatformIDs(numPlatforms, &platforms[0], NULL);
+    if (status != CL_SUCCESS)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't get platform Id list");
+
+    // For CL-VA interop, we must find platform/device with "cl_intel_va_api_media_sharing" extension.
+    // With standard initialization procedure, we should examine platform extension string for that.
+    // But in practice, the platform ext string doesn't contain it, while device ext string does.
+    // Follow Intel procedure (see tutorial), we should obtain device IDs by extension call.
+    // Note that we must obtain function pointers using specific platform ID, and can't provide pointers in advance.
+    // So, we iterate and select the first platform, for which we got non-NULL pointers, device, and CL context.
+
+    int found = -1;
+    cl_context clContext = 0;
+
+    for (int i = 0; i < (int)numPlatforms; ++i)
+    {
+        // Get extension function pointers
+
+        clGetDeviceIDsFromVA_APIMediaAdapterINTEL = (clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn)
+            clGetExtensionFunctionAddressForPlatform(platforms[i], "clGetDeviceIDsFromVA_APIMediaAdapterINTEL");
+        clCreateFromVA_APIMediaSurfaceINTEL       = (clCreateFromVA_APIMediaSurfaceINTEL_fn)
+            clGetExtensionFunctionAddressForPlatform(platforms[i], "clCreateFromVA_APIMediaSurfaceINTEL");
+        clEnqueueAcquireVA_APIMediaSurfacesINTEL  = (clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn)
+            clGetExtensionFunctionAddressForPlatform(platforms[i], "clEnqueueAcquireVA_APIMediaSurfacesINTEL");
+        clEnqueueReleaseVA_APIMediaSurfacesINTEL  = (clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn)
+            clGetExtensionFunctionAddressForPlatform(platforms[i], "clEnqueueReleaseVA_APIMediaSurfacesINTEL");
+
+        if (((void*)clGetDeviceIDsFromVA_APIMediaAdapterINTEL == NULL) ||
+            ((void*)clCreateFromVA_APIMediaSurfaceINTEL == NULL) ||
+            ((void*)clEnqueueAcquireVA_APIMediaSurfacesINTEL == NULL) ||
+            ((void*)clEnqueueReleaseVA_APIMediaSurfacesINTEL == NULL))
+        {
+            continue;
+        }
+
+        // Query device list
+
+        cl_uint numDevices = 0;
+        cl_device_id device;
+
+        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, vaapiVAdisplay,
+                                                           CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, 0, NULL, &numDevices);
+        if ((status != CL_SUCCESS) || !(numDevices > 0))
+            continue;
+        numDevices = 1;
+        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, vaapiVAdisplay,
+                                                           CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, numDevices, &device, NULL);
+        if (status != CL_SUCCESS)
+            continue;
+
+        // Creating CL-VA media sharing OpenCL context
+
+        cl_context_properties props[] = {
+            CL_CONTEXT_VA_API_DISPLAY_INTEL, (cl_context_properties) vaapiVAdisplay,
+            CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE,
+            0
+        };
+
+        clContext = clCreateContext(props, numDevices, &device, NULL, NULL, &status);
+        if (status != CL_SUCCESS)
+        {
+            clReleaseDevice(device);
+        }
+        else
+        {
+            found = i;
+            break;
+        }
+    }
+
+    if (found < 0)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't create context for VA-API interop");
 
     Context& ctx = Context::getDefault(false);
-//    initializeContextFromHandle(ctx, platforms[found], context, device);
+    initializeContextFromHandle(ctx, platforms[found], context, device);
+    openclInitialized = true;
     return ctx;
 #endif
 }
@@ -310,7 +386,8 @@ void convertToVASurface(InputArray src, VASurfaceID* surface)
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    __OpenCLinitializeVA();
+    if (!openclInitialized)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: VA-API interop: cv::vaapi::ocl::initializeContextFromVA() must be called first");
 #endif
 }
 
@@ -322,7 +399,8 @@ void convertFromVASurface(VASurfaceID* surface, OutputArray dst)
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    __OpenCLinitializeVA();
+    if (!openclInitialized)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: VA-API interop: cv::vaapi::ocl::initializeContextFromVA() must be called first");
 #endif
 }
 
