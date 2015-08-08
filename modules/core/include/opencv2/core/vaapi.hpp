@@ -78,17 +78,17 @@ CV_EXPORTS Context& initializeContextFromVA();
 
 } // namespace cv::vaapi::ocl
 
-/** @brief Converts InputArray to VASurface object.
+/** @brief Converts InputArray to VASurfaceID object.
 @param src     - source InputArray.
-@param surface - destination VASurface object.
+@param surface - destination VASurfaceID object.
  */
-CV_EXPORTS void convertToVASurface(InputArray src, VASurface* surface);
+CV_EXPORTS void convertToVASurface(InputArray src, VASurfaceID* surface);
 
-/** @brief Converts VASurface object to OutputArray.
-@param surface - source VASurface object.
+/** @brief Converts VASurfaceID object to OutputArray.
+@param surface - source VASurfaceID object.
 @param dst     - destination OutputArray.
  */
-CV_EXPORTS void convertFromVASurface(VASurface* surface, OutputArray dst);
+CV_EXPORTS void convertFromVASurface(VASurfaceID* surface, OutputArray dst);
 
 //! @}
 

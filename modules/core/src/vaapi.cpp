@@ -43,7 +43,7 @@
 #include "precomp.hpp"
 
 #ifdef HAVE_VAAPI
-# include <va/va_drm.h>
+#  include <va/va_drm.h>
 #else // HAVE_VAAPI
 #  define NO_VAAPI_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA-API support")
 #endif // HAVE_VAAPI
@@ -55,17 +55,26 @@ using namespace cv::cuda;
 // CL-VA Interoperability
 
 #ifdef HAVE_OPENCL
+#  include "opencv2/core/opencl/runtime/opencl_core.hpp"
 #else // HAVE_OPENCL
 #  define NO_OPENCL_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without OpenCL support")
 #endif // HAVE_OPENCL
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
-# include <CL/va_ext.h>
+#  include "va_ext.h" //<CL/va_ext.h>
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
 namespace cv { namespace vaapi {
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
+
+#include <dirent.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define VAAPI_PCI_DIR "/sys/bus/pci/devices"
 #define VAAPI_DRI_DIR "/dev/dri/"
@@ -293,7 +302,7 @@ Context& initializeContextFromVA()
 
 } // namespace cv::vaapi::ocl
 
-void convertToVASurface(InputArray src, VASurface* surface)
+void convertToVASurface(InputArray src, VASurfaceID* surface)
 {
     (void)src; (void)surface;
 #if !defined(HAVE_VAAPI)
@@ -305,7 +314,7 @@ void convertToVASurface(InputArray src, VASurface* surface)
 #endif
 }
 
-void convertFromVASurface(VASurface* surface, OutputArray dst)
+void convertFromVASurface(VASurfaceID* surface, OutputArray dst)
 {
     (void)surface; (void)dst;
 #if !defined(HAVE_VAAPI)
