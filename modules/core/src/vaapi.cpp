@@ -199,33 +199,35 @@ static void initVAdrm()
 {
     const unsigned IntelVendorID = 0x8086;
 
-    int adapterIndex = findAdapter(IntelVendorID);
-    if (adapterIndex < 0)
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find Intel display adapter for VA-API interop");
-
-    NodeInfo nodes(adapterIndex);
-
     vaFDdrm = -1;
     vaDisplay = 0;
 
-    for (int i = 0;  i < nodes.count();  ++i)
+    int adapterIndex = findAdapter(IntelVendorID);
+    if (adapterIndex >= 0)
     {
-        vaFDdrm = open(nodes.path(i), O_RDWR);
-        if (vaFDdrm >= 0)
+        NodeInfo nodes(adapterIndex);
+
+        for (int i = 0;  i < nodes.count();  ++i)
         {
-            vaDisplay = vaGetDisplayDRM(vaFDdrm);
-            if (vaDisplay)
+            vaFDdrm = open(nodes.path(i), O_RDWR);
+            if (vaFDdrm >= 0)
             {
-                int majorVersion = 0, minorVersion = 0;
-                if (vaInitialize(vaDisplay, &majorVersion, &minorVersion) == VA_STATUS_SUCCESS)
-                    break;
-                vaDisplay = 0;
+                vaDisplay = vaGetDisplayDRM(vaFDdrm);
+                if (vaDisplay)
+                {
+                    int majorVersion = 0, minorVersion = 0;
+                    if (vaInitialize(vaDisplay, &majorVersion, &minorVersion) == VA_STATUS_SUCCESS)
+                        return;
+                    vaDisplay = 0;
+                }
+                close(vaFDdrm);
+                vaFDdrm = -1;
             }
-            close(vaFDdrm);
-            vaFDdrm = -1;
         }
     }
 
+    if (adapterIndex < 0)
+        CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find Intel display adapter for VA-API interop");
     if ((vaFDdrm < 0) || !vaDisplay)
         CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't load VA display for VA-API interop");
 }
