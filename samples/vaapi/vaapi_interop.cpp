@@ -1,3 +1,5 @@
+/* origin: libva-1.3.1/test/decode/mpeg2vldemo.cpp */
+
 /*
  * Copyright (c) 2007-2008 Intel Corporation. All Rights Reserved.
  *
@@ -162,6 +164,10 @@ int main(int argc,char **argv)
     fprintf(stderr, "VA display opened successfully\n");
 //    va_init_display_args(&argc, argv);
 
+    printf("--> cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
+    cv::vaapi::ocl::initializeContextFromVA(va::display);
+    printf("::: cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
+
 //    if (argc > 1)
 //        putsurface=1;
     
@@ -262,6 +268,17 @@ int main(int argc,char **argv)
 
     va_status = vaSyncSurface(va::display, surface_id);
     CHECK_VASTATUS(va_status, "vaSyncSurface");
+
+    cv::Size size(CLIP_WIDTH,CLIP_HEIGHT)
+    cv::UMat u;
+
+    printf("--> cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
+    cv::vaapi::convertFromVASurface(surface_id, size, u);
+    printf("::: cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
+
+    printf("--> cv::vaapi::convertToVASurface(u, surface_id, size);\n");
+    cv::vaapi::convertToVASurface(u, surface_id, size);
+    printf("::: cv::vaapi::convertToVASurface(u, surface_id, size);\n");
 
 //    if (putsurface) {
 //        VARectangle src_rect, dst_rect;

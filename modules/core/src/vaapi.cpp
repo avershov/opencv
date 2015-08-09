@@ -202,7 +202,7 @@ static bool ocl_convert_bgr_to_nv12(cl_mem clBuffer, int step, int cols, int row
 
 } // namespace cv::vaapi::ocl
 
-void convertToVASurface(InputArray src, VASurfaceID* surface, Size size)
+void convertToVASurface(InputArray src, VASurfaceID surface, Size size)
 {
     (void)src; (void)surface;
 #if !defined(HAVE_VAAPI)
@@ -232,10 +232,10 @@ void convertToVASurface(InputArray src, VASurfaceID* surface, Size size)
 
     cl_int status = 0;
 
-    cl_mem clImageY = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_WRITE_ONLY, surface, 0, &status);
+    cl_mem clImageY = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_WRITE_ONLY, &surface, 0, &status);
     if (status != CL_SUCCESS)
         CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clCreateFromVA_APIMediaSurfaceINTEL failed (Y plane)");
-    cl_mem clImageUV = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_WRITE_ONLY, surface, 1, &status);
+    cl_mem clImageUV = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_WRITE_ONLY, &surface, 1, &status);
     if (status != CL_SUCCESS)
         CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clCreateFromVA_APIMediaSurfaceINTEL failed (UV plane)");
 
@@ -264,7 +264,7 @@ void convertToVASurface(InputArray src, VASurfaceID* surface, Size size)
 #endif
 }
 
-void convertFromVASurface(VASurfaceID* surface, Size size, OutputArray dst)
+void convertFromVASurface(VASurfaceID surface, Size size, OutputArray dst)
 {
     (void)surface; (void)dst;
 #if !defined(HAVE_VAAPI)
@@ -290,10 +290,10 @@ void convertFromVASurface(VASurfaceID* surface, Size size, OutputArray dst)
 
     cl_int status = 0;
 
-    cl_mem clImageY = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_READ_ONLY, surface, 0, &status);
+    cl_mem clImageY = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_READ_ONLY, &surface, 0, &status);
     if (status != CL_SUCCESS)
         CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clCreateFromVA_APIMediaSurfaceINTEL failed (Y plane)");
-    cl_mem clImageUV = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_READ_ONLY, surface, 1, &status);
+    cl_mem clImageUV = clCreateFromVA_APIMediaSurfaceINTEL(context, CL_MEM_READ_ONLY, &surface, 1, &status);
     if (status != CL_SUCCESS)
         CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clCreateFromVA_APIMediaSurfaceINTEL failed (UV plane)");
 

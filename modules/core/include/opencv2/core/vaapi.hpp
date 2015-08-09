@@ -84,14 +84,14 @@ CV_EXPORTS Context& initializeContextFromVA(VADisplay display);
 @param surface - destination VASurfaceID object.
 @param size    - size of image represented by VASurfaceID object.
  */
-CV_EXPORTS void convertToVASurface(InputArray src, VASurfaceID* surface, Size size);
+CV_EXPORTS void convertToVASurface(InputArray src, VASurfaceID surface, Size size);
 
 /** @brief Converts VASurfaceID object to OutputArray.
 @param surface - source VASurfaceID object.
 @param size    - size of image represented by VASurfaceID object.
 @param dst     - destination OutputArray.
  */
-CV_EXPORTS void convertFromVASurface(VASurfaceID* surface, Size size, OutputArray dst);
+CV_EXPORTS void convertFromVASurface(VASurfaceID surface, Size size, OutputArray dst);
 
 //! @}
 
