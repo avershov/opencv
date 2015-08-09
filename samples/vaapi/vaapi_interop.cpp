@@ -145,6 +145,8 @@ static VASliceParameterBufferMPEG2 slice_param={
 
 int main(int argc,char **argv)
 {
+    (void)argc; (void)argv;
+
     VAEntrypoint entrypoints[5];
     int num_entrypoints,vld_entrypoint;
     VAConfigAttrib attrib;
