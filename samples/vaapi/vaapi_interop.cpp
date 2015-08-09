@@ -269,7 +269,7 @@ int main(int argc,char **argv)
     va_status = vaSyncSurface(va::display, surface_id);
     CHECK_VASTATUS(va_status, "vaSyncSurface");
 
-    cv::Size size(CLIP_WIDTH,CLIP_HEIGHT)
+    cv::Size size(CLIP_WIDTH,CLIP_HEIGHT);
     cv::UMat u;
 
     printf("--> cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
