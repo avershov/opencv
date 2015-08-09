@@ -278,6 +278,10 @@ int main(int argc,char **argv)
     cv::vaapi::convertFromVASurface(surface_id, size, u);
     printf("::: cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
 
+    printf("--> cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
+    cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));
+    printf("::: cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
+
     printf("--> cv::vaapi::convertToVASurface(u, surface_id, size);\n");
     cv::vaapi::convertToVASurface(u, surface_id, size);
     printf("::: cv::vaapi::convertToVASurface(u, surface_id, size);\n");
