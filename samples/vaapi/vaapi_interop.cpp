@@ -50,6 +50,7 @@
 #include "display.cpp.inc"
 
 #include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include "opencv2/core/vaapi.hpp"
 
 #define CHECK_VASTATUS(va_status,func)                                  \
