@@ -43,13 +43,11 @@
 #include "precomp.hpp"
 
 #ifdef HAVE_VAAPI
-//#  include <va/va_drm.h>
 #else // HAVE_VAAPI
 #  define NO_VAAPI_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA-API support")
 #endif // HAVE_VAAPI
 
 using namespace cv;
-//using namespace cv::cuda;
 
 ////////////////////////////////////////////////////////////////////////
 // CL-VA Interoperability
@@ -70,12 +68,6 @@ using namespace cv;
 namespace cv { namespace vaapi {
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
-
-#if 0
-static int vaInitialize(VADisplay display, int* majorVersion, int* minorVersion) { (void)display; (void)majorVersion; (void)minorVersion; return 0; }
-static int vaTerminate(VADisplay display) { (void)display; return 0; }
-//static VADisplay vaGetDisplayDRM(int fd) { (void)fd; return 0; }
-#endif
 
 static clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
 static clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
