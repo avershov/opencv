@@ -78,7 +78,9 @@ namespace cv { namespace vaapi {
 #include <unistd.h>
 
 #if 0
-static VADisplay vaGetDisplayDRM(int fd) { return 0; }
+static int vaInitialize(VADisplay display, int* majorVersion, int* minorVersion) { (void)display; (void)majorVersion; (void)minorVersion; return 0; }
+static int vaTerminate(VADisplay display) { (void)display; return 0; }
+static VADisplay vaGetDisplayDRM(int fd) { (void)fd; return 0; }
 #endif
 
 #define VAAPI_PCI_DIR "/sys/bus/pci/devices"
@@ -272,8 +274,6 @@ static clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfa
 static clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn  clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
 static clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn  clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
 
-static bool openclInitialized = false;
-
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
 namespace ocl {
@@ -375,7 +375,6 @@ Context& initializeContextFromVA()
 
     Context& ctx = Context::getDefault(false);
     initializeContextFromHandle(ctx, platforms[found], context, device);
-    openclInitialized = true;
     return ctx;
 #endif
 }
@@ -390,8 +389,10 @@ void convertToVASurface(InputArray src, VASurfaceID* surface)
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    if (!openclInitialized)
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: VA-API interop: cv::vaapi::ocl::initializeContextFromVA() must be called first");
+//    cl_int status;
+//
+//    cl_mem clImageOutY = clCreateFromVA_APIMediaSurfaceINTEL(clContext, CL_MEM_WRITE_ONLY, surface, 0, &status);
+//    cl_mem clImageOutUV = clCreateFromVA_APIMediaSurfaceINTEL(clContext, CL_MEM_WRITE_ONLY, surface, 1, &status);
 #endif
 }
 
@@ -403,8 +404,10 @@ void convertFromVASurface(VASurfaceID* surface, OutputArray dst)
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    if (!openclInitialized)
-        CV_Error(cv::Error::OpenCLInitError, "OpenCL: VA-API interop: cv::vaapi::ocl::initializeContextFromVA() must be called first");
+//    cl_int status;
+//
+//    cl_mem clImageInY = clCreateFromVA_APIMediaSurfaceINTEL(clContext, CL_MEM_READ_ONLY, surface, 0, &status);
+//    cl_mem clImageInUV = clCreateFromVA_APIMediaSurfaceINTEL(clContext, CL_MEM_READ_ONLY, surface, 1, &status);
 #endif
 }
 
