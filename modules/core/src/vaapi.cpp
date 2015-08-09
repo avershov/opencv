@@ -77,6 +77,10 @@ namespace cv { namespace vaapi {
 #include <sys/types.h>
 #include <unistd.h>
 
+#if 0
+static VADisplay vaGetDisplayDRM(int fd) { return 0; }
+#endif
+
 #define VAAPI_PCI_DIR "/sys/bus/pci/devices"
 #define VAAPI_DRI_DIR "/dev/dri/"
 #define VAAPI_PCI_DISPLAY_CONTROLLER_CLASS 0x03
@@ -308,7 +312,8 @@ Context& initializeContextFromVA()
     // So, we iterate and select the first platform, for which we got non-NULL pointers, device, and CL context.
 
     int found = -1;
-    cl_context clContext = 0;
+    cl_context context = 0;
+    cl_device_id device = 0;
 
     for (int i = 0; i < (int)numPlatforms; ++i)
     {
@@ -334,7 +339,6 @@ Context& initializeContextFromVA()
         // Query device list
 
         cl_uint numDevices = 0;
-        cl_device_id device;
 
         status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, vaapiVAdisplay,
                                                            CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, 0, NULL, &numDevices);
@@ -354,7 +358,7 @@ Context& initializeContextFromVA()
             0
         };
 
-        clContext = clCreateContext(props, numDevices, &device, NULL, NULL, &status);
+        context = clCreateContext(props, numDevices, &device, NULL, NULL, &status);
         if (status != CL_SUCCESS)
         {
             clReleaseDevice(device);
