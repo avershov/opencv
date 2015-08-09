@@ -169,7 +169,7 @@ int main(int argc,char **argv)
 
     printf("--> cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
     cv::vaapi::ocl::initializeContextFromVA(va::display);
-    printf("::: cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
+    printf("<-- cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
 
 //    if (argc > 1)
 //        putsurface=1;
@@ -277,15 +277,15 @@ int main(int argc,char **argv)
 
     printf("--> cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
     cv::vaapi::convertFromVASurface(surface_id, size, u);
-    printf("::: cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
+    printf("<-- cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
 
     printf("--> cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
     cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));
-    printf("::: cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
+    printf("<-- cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
 
     printf("--> cv::vaapi::convertToVASurface(u, surface_id, size);\n");
     cv::vaapi::convertToVASurface(u, surface_id, size);
-    printf("::: cv::vaapi::convertToVASurface(u, surface_id, size);\n");
+    printf("<-- cv::vaapi::convertToVASurface(u, surface_id, size);\n");
 
 //    if (putsurface) {
 //        VARectangle src_rect, dst_rect;
