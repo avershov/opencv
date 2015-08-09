@@ -43,13 +43,13 @@
 #include "precomp.hpp"
 
 #ifdef HAVE_VAAPI
-#  include <va/va_drm.h>
+//#  include <va/va_drm.h>
 #else // HAVE_VAAPI
 #  define NO_VAAPI_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA-API support")
 #endif // HAVE_VAAPI
 
 using namespace cv;
-using namespace cv::cuda;
+//using namespace cv::cuda;
 
 ////////////////////////////////////////////////////////////////////////
 // CL-VA Interoperability
@@ -67,15 +67,6 @@ using namespace cv::cuda;
 #  include "va_ext.h" //<CL/va_ext.h>
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
-#include <dirent.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 namespace cv { namespace vaapi {
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
@@ -83,194 +74,8 @@ namespace cv { namespace vaapi {
 #if 0
 static int vaInitialize(VADisplay display, int* majorVersion, int* minorVersion) { (void)display; (void)majorVersion; (void)minorVersion; return 0; }
 static int vaTerminate(VADisplay display) { (void)display; return 0; }
-static VADisplay vaGetDisplayDRM(int fd) { (void)fd; return 0; }
+//static VADisplay vaGetDisplayDRM(int fd) { (void)fd; return 0; }
 #endif
-
-#define VAAPI_PCI_DIR "/sys/bus/pci/devices"
-#define VAAPI_DRI_DIR "/dev/dri/"
-#define VAAPI_PCI_DISPLAY_CONTROLLER_CLASS 0x03
-
-static int vaapiFDdrm = -1;
-static VADisplay vaapiVAdisplay = NULL;
-static bool vaapiVAinitialized = false;
-
-class Directory
-{
-    typedef int (*fsort)(const struct dirent**, const struct dirent**);
-public:
-    Directory(const char* path)
-        {
-            dirEntries = 0;
-            numEntries = scandir(path, &dirEntries, filterFunc, (fsort)alphasort);
-        }
-    ~Directory()
-        {
-            if (numEntries && dirEntries)
-            {
-                for (int i = 0;  i < numEntries;  ++i)
-                    free(dirEntries[i]);
-                free(dirEntries);
-            }
-        }
-    int count() const
-        {
-            return numEntries;
-        }
-    const struct dirent* operator[](int index) const
-        {
-            return ((dirEntries != 0) && (index >= 0) && (index < numEntries)) ? dirEntries[index] : 0;
-        }
-protected:
-    static int filterFunc(const struct dirent* dir)
-        {
-            if (!dir) return 0;
-            if (!strcmp(dir->d_name, ".")) return 0;
-            if (!strcmp(dir->d_name, "..")) return 0;
-            return 1;
-        }
-private:
-    int numEntries;
-    struct dirent** dirEntries;
-};
-
-static unsigned readId(const char* devName, const char* idName)
-{
-    long int id = 0;
-
-    char fileName[256];
-    snprintf(fileName, sizeof(fileName), "%s/%s/%s", VAAPI_PCI_DIR, devName, idName);
-
-    FILE* file = fopen(fileName, "r");
-    if (file)
-    {
-        char str[16] = "";
-        if (fgets(str, sizeof(str), file))
-            id = strtol(str, NULL, 16);
-        fclose(file);
-    }
-    return (unsigned)id;
-}
-
-static int findAdapter(unsigned desiredVendorId)
-{
-    int adapterIndex = -1;
-    int numAdapters = 0;
-
-    Directory dir(VAAPI_PCI_DIR);
-
-    for (int i = 0;  i < dir.count();  ++i)
-    {
-        const char* name = dir[i]->d_name;
-
-        unsigned classId = readId(name, "class");
-        if ((classId >> 16) == VAAPI_PCI_DISPLAY_CONTROLLER_CLASS)
-        {
-            unsigned vendorId = readId(name, "vendor");
-            if (vendorId == desiredVendorId)
-            {
-                adapterIndex = numAdapters;
-                break;
-            }
-            ++numAdapters;
-        }
-    }
-
-    return adapterIndex;
-}
-
-class NodeInfo
-{
-    enum { NUM_NODES = 2 };
-public:
-    NodeInfo(int adapterIndex)
-        {
-            const char* names[NUM_NODES] = { "renderD", "card" };
-            int numbers[NUM_NODES];
-            numbers[0] = adapterIndex+128;
-            numbers[1] = adapterIndex;
-            for (int i = 0;  i < NUM_NODES;  ++i)
-            {
-                int sz = sizeof(VAAPI_DRI_DIR) + strlen(names[i]) + 3;
-                paths[i] = new char [sz];
-                snprintf(paths[i], sz, "%s%s%d", VAAPI_DRI_DIR, names[i], numbers[i]);
-            }
-        }
-    ~NodeInfo()
-        {
-            for (int i = 0;  i < NUM_NODES;  ++i)
-            {
-                delete paths[i];
-                paths[i] = 0;
-            }
-        }
-    int count() const
-        {
-            return NUM_NODES;
-        }
-    const char* path(int index) const
-        {
-            return ((index >= 0) && (index < NUM_NODES)) ? paths[index] : 0;
-        }
-private:
-    char* paths[NUM_NODES];
-};
-
-static void vaapiInitDRM()
-{
-    if (!vaapiVAinitialized)
-    {
-        const unsigned IntelVendorID = 0x8086;
-
-        vaapiFDdrm = -1;
-        vaapiVAdisplay = 0;
-
-        int adapterIndex = findAdapter(IntelVendorID);
-        if (adapterIndex >= 0)
-        {
-            NodeInfo nodes(adapterIndex);
-
-            for (int i = 0;  i < nodes.count();  ++i)
-            {
-                vaapiFDdrm = open(nodes.path(i), O_RDWR);
-                if (vaapiFDdrm >= 0)
-                {
-                    vaapiVAdisplay = vaGetDisplayDRM(vaapiFDdrm);
-                    if (vaapiVAdisplay)
-                    {
-                        int majorVersion = 0, minorVersion = 0;
-                        if (vaInitialize(vaapiVAdisplay, &majorVersion, &minorVersion) == VA_STATUS_SUCCESS)
-                        {
-                            vaapiVAinitialized = true;
-                            return;
-                        }
-                        vaapiVAdisplay = 0;
-                    }
-                    close(vaapiFDdrm);
-                    vaapiFDdrm = -1;
-                }
-            }
-        }
-
-        if (adapterIndex < 0)
-            CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't find Intel display adapter for VA-API interop");
-        if ((vaapiFDdrm < 0) || !vaapiVAdisplay)
-            CV_Error(cv::Error::OpenCLInitError, "OpenCL: Can't load VA display for VA-API interop");
-    }
-}
-
-static void vaapiDone()
-{
-    if (vaapiVAinitialized)
-    {
-        if (vaapiVAdisplay)
-            vaTerminate(vaapiVAdisplay);
-        if (vaapiFDdrm >= 0)
-            close(vaapiFDdrm);
-        vaapiVAdisplay = 0;
-        vaapiFDdrm = -1;
-        vaapiVAinitialized = false;
-    }
-}
 
 static clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
 static clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
@@ -281,20 +86,13 @@ static clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn  clEnqueueReleaseVA_APIMediaS
 
 namespace ocl {
 
-Context& initializeContextFromVA()
+Context& initializeContextFromVA(VADisplay display)
 {
 #if !defined(HAVE_VAAPI)
     NO_VAAPI_SUPPORT_ERROR;
 #elif !defined(HAVE_OPENCL)
     NO_OPENCL_SUPPORT_ERROR;
 #else
-    if (!vaapiVAinitialized)
-    {
-        vaapiInitDRM();
-        if (vaapiVAinitialized)
-            atexit(vaapiDone);
-    }
-
     cl_uint numPlatforms;
     cl_int status = clGetPlatformIDs(0, NULL, &numPlatforms);
     if (status != CL_SUCCESS)
@@ -343,12 +141,12 @@ Context& initializeContextFromVA()
 
         cl_uint numDevices = 0;
 
-        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, vaapiVAdisplay,
+        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, display,
                                                            CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, 0, NULL, &numDevices);
         if ((status != CL_SUCCESS) || !(numDevices > 0))
             continue;
-        numDevices = 1;
-        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, vaapiVAdisplay,
+        numDevices = 1; // initializeContextFromHandle() expects only 1 device
+        status = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(platforms[i], CL_VA_API_DISPLAY_INTEL, display,
                                                            CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, numDevices, &device, NULL);
         if (status != CL_SUCCESS)
             continue;
@@ -356,8 +154,8 @@ Context& initializeContextFromVA()
         // Creating CL-VA media sharing OpenCL context
 
         cl_context_properties props[] = {
-            CL_CONTEXT_VA_API_DISPLAY_INTEL, (cl_context_properties) vaapiVAdisplay,
-            CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE,
+            CL_CONTEXT_VA_API_DISPLAY_INTEL, (cl_context_properties) display,
+            CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, // no explicit sync required
             0
         };
 
@@ -382,6 +180,7 @@ Context& initializeContextFromVA()
 #endif
 }
 
+#if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
 static bool ocl_convert_nv12_to_bgr(cl_mem clImageY, cl_mem clImageUV, cl_mem clBuffer, int step, int cols, int rows)
 {
     ocl::Kernel k;
@@ -407,6 +206,7 @@ static bool ocl_convert_bgr_to_nv12(cl_mem clBuffer, int step, int cols, int row
     size_t globalsize[] = { cols, rows };
     return k.run(2, globalsize, 0, false);
 }
+#endif // HAVE_VAAPI && HAVE_OPENCL
 
 } // namespace cv::vaapi::ocl
 
