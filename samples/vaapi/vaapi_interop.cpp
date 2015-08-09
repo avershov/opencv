@@ -155,7 +155,7 @@ int main(int argc,char **argv)
     VASurfaceID surface_id;
     VAContextID context_id;
     VABufferID pic_param_buf,iqmatrix_buf,slice_param_buf,slice_data_buf;
-    int major_ver, minor_ver;
+//    int major_ver, minor_ver;
     VAStatus va_status;
 //    int putsurface=0;
 
@@ -175,8 +175,8 @@ int main(int argc,char **argv)
 //        putsurface=1;
     
 //    va::display = va_open_display();
-    va_status = vaInitialize(va::display, &major_ver, &minor_ver);
-    assert(va_status == VA_STATUS_SUCCESS);
+//    va_status = vaInitialize(va::display, &major_ver, &minor_ver);
+//    assert(va_status == VA_STATUS_SUCCESS);
     
     va_status = vaQueryConfigEntrypoints(va::display, VAProfileMPEG2Main, entrypoints, 
                              &num_entrypoints);
