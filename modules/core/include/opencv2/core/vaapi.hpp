@@ -53,10 +53,15 @@
 #include "ocl.hpp"
 
 #if defined(HAVE_VAAPI)
-
-#include "va/va.h"
+# include "va/va.h"
+#endif // HAVE_VAAPI
 
 namespace cv { namespace vaapi {
+
+#if !defined(_VA_H_)
+typedef void* VADisplay;
+typedef unsigned int VASurfaceID;
+#endif // !_VA_H_
 
 /** @addtogroup core_vaapi
 This section describes CL-VA interoperability.
@@ -96,7 +101,5 @@ CV_EXPORTS void convertFromVASurface(VASurfaceID surface, Size size, OutputArray
 //! @}
 
 }} // namespace cv::vaapi
-
-#endif // HAVE_VAAPI
 
 #endif /* __OPENCV_CORE_VAAPI_HPP__ */

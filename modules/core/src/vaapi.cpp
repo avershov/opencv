@@ -80,6 +80,7 @@ namespace ocl {
 
 Context& initializeContextFromVA(VADisplay display)
 {
+    (void)display;
 #if !defined(HAVE_VAAPI)
     NO_VAAPI_SUPPORT_ERROR;
 #elif !defined(HAVE_OPENCL)
@@ -204,7 +205,7 @@ static bool ocl_convert_bgr_to_nv12(cl_mem clBuffer, int step, int cols, int row
 
 void convertToVASurface(InputArray src, VASurfaceID surface, Size size)
 {
-    (void)src; (void)surface;
+    (void)src; (void)surface; (void)size;
 #if !defined(HAVE_VAAPI)
     NO_VAAPI_SUPPORT_ERROR;
 #elif !defined(HAVE_OPENCL)
@@ -266,7 +267,7 @@ void convertToVASurface(InputArray src, VASurfaceID surface, Size size)
 
 void convertFromVASurface(VASurfaceID surface, Size size, OutputArray dst)
 {
-    (void)surface; (void)dst;
+    (void)surface; (void)dst; (void)size;
 #if !defined(HAVE_VAAPI)
     NO_VAAPI_SUPPORT_ERROR;
 #elif !defined(HAVE_OPENCL)
