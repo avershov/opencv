@@ -17,7 +17,7 @@ if(BUILD_EXAMPLES AND OCV_DEPENDENCIES_FOUND)
     set(the_target "example_${project}_${name}")
     add_executable(${the_target} ${srcs})
 
-    ocv_target_link_libraries(${the_target} ${OPENCV_LINKER_LIBS} ${OPENCV_VAAPI_SAMPLES_REQUIRED_DEPS} "-lva-drm")
+    ocv_target_link_libraries(${the_target} ${OPENCV_LINKER_LIBS} ${OPENCV_VAAPI_SAMPLES_REQUIRED_DEPS} "-lva" "-lva-drm")
 
     set_target_properties(${the_target} PROPERTIES
       OUTPUT_NAME "${project}-example-${name}"
