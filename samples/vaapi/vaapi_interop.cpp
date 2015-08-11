@@ -45,13 +45,8 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <va/va.h>
-//#include "va_display.h"
 
 #include "display.cpp.inc"
-
-//#if !defined(HAVE_VAAPI)
-//# define HAVE_VAAPI
-//#endif // HAVE_VAAPI
 
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
@@ -148,6 +143,46 @@ static VASliceParameterBufferMPEG2 slice_param={
 #define WIN_WIDTH  (CLIP_WIDTH<<1)
 #define WIN_HEIGHT (CLIP_HEIGHT<<1)
 
+static void dumpSurface(VADisplay display, VASurfaceID surface_id, const char* fileName)
+{
+    VAStatus va_status;
+
+    va_status = vaSyncSurface(display, surface_id);
+    CHECK_VASTATUS(va_status, "vaSyncSurface");
+
+    VAImage image;
+    va_status = vaDeriveImage(display, surface_id, &image);
+    CHECK_VASTATUS(va_status, "vaDeriveImage");
+
+    unsigned char* buffer = 0;
+    va_status = vaMapBuffer(display, image.buf, (void **)&buffer);
+    CHECK_VASTATUS(va_status, "vaMapBuffer");
+
+    CV_Assert(image.format.fourcc == VA_FOURCC_NV12);
+/*
+    printf("image.format.fourcc = 0x%08x\n", image.format.fourcc);
+    printf("image.[width x height] = %d x %d\n", image.width, image.height);
+    printf("image.data_size = %d\n", image.data_size);
+    printf("image.num_planes = %d\n", image.num_planes);
+    printf("image.pitches[0..2] = 0x%08x 0x%08x 0x%08x\n", image.pitches[0], image.pitches[1], image.pitches[2]);
+    printf("image.offsets[0..2] = 0x%08x 0x%08x 0x%08x\n", image.offsets[0], image.offsets[1], image.offsets[2]);
+*/
+    FILE* out = fopen(fileName, "wb");
+    if (!out)
+    {
+        perror(fileName);
+        exit(1);
+    }
+    fwrite(buffer, 1, image.data_size, out);
+    fclose(out);
+
+    vaUnmapBuffer(display, image.buf);
+    CHECK_VASTATUS(va_status, "vaUnmapBuffer");
+
+    vaDestroyImage(display, image.image_id);
+    CHECK_VASTATUS(va_status, "vaDestroyImage");
+}
+
 int main(int argc,char **argv)
 {
     (void)argc; (void)argv;
@@ -159,9 +194,16 @@ int main(int argc,char **argv)
     VASurfaceID surface_id;
     VAContextID context_id;
     VABufferID pic_param_buf,iqmatrix_buf,slice_param_buf,slice_data_buf;
-//    int major_ver, minor_ver;
     VAStatus va_status;
-//    int putsurface=0;
+
+    if (argc < 3)
+    {
+        fprintf(stderr,
+                "Usage: vaapi_interop file1 file2\n\n"
+                "where:  file1 is to be created, contains original surface data (NV12)\n"
+                "        file2 is to be created, contains processed surface data (NV12)\n");
+        exit(0);
+    }
 
     if (!va::openDisplay())
     {
@@ -169,18 +211,8 @@ int main(int argc,char **argv)
         exit(1);
     }
     fprintf(stderr, "VA display opened successfully\n");
-//    va_init_display_args(&argc, argv);
 
-    printf("--> cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
     cv::vaapi::ocl::initializeContextFromVA(va::display);
-    printf("<-- cv::vaapi::ocl::initializeContextFromVA(va::display);\n");
-
-//    if (argc > 1)
-//        putsurface=1;
-    
-//    va::display = va_open_display();
-//    va_status = vaInitialize(va::display, &major_ver, &minor_ver);
-//    assert(va_status == VA_STATUS_SUCCESS);
     
     va_status = vaQueryConfigEntrypoints(va::display, VAProfileMPEG2Main, entrypoints, 
                              &num_entrypoints);
@@ -276,46 +308,22 @@ int main(int argc,char **argv)
     va_status = vaSyncSurface(va::display, surface_id);
     CHECK_VASTATUS(va_status, "vaSyncSurface");
 
+    dumpSurface(va::display, surface_id, argv[1]);
+
     cv::Size size(CLIP_WIDTH,CLIP_HEIGHT);
     cv::UMat u;
 
-    printf("--> cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
     cv::vaapi::convertFromVASurface(surface_id, size, u);
-    printf("<-- cv::vaapi::convertFromVASurface(surface_id, size, u);\n");
-
-    printf("--> cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
     cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));
-    printf("<-- cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));\n");
-
-    printf("--> cv::vaapi::convertToVASurface(u, surface_id, size);\n");
     cv::vaapi::convertToVASurface(u, surface_id, size);
-    printf("<-- cv::vaapi::convertToVASurface(u, surface_id, size);\n");
 
-//    if (putsurface) {
-//        VARectangle src_rect, dst_rect;
-//
-//        src_rect.x      = 0;
-//        src_rect.y      = 0;
-//        src_rect.width  = CLIP_WIDTH;
-//        src_rect.height = CLIP_HEIGHT;
-//
-//        dst_rect.x      = 0;
-//        dst_rect.y      = 0;
-//        dst_rect.width  = WIN_WIDTH;
-//        dst_rect.height = WIN_HEIGHT;
-//
-//        va_status = va_put_surface(va::display, surface_id, &src_rect, &dst_rect);
-//        CHECK_VASTATUS(va_status, "vaPutSurface");
-//    }
-//    printf("press any key to exit\n");
-//    getchar();
+    dumpSurface(va::display, surface_id, argv[2]);
 
     vaDestroySurfaces(va::display,&surface_id,1);
     vaDestroyConfig(va::display,config_id);
     vaDestroyContext(va::display,context_id);
 
     vaTerminate(va::display);
-//    va_close_display(va::display);
     va::closeDisplay();
     return 0;
 }
