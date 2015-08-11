@@ -140,9 +140,6 @@ static VASliceParameterBufferMPEG2 slice_param={
 #define CLIP_WIDTH  16
 #define CLIP_HEIGHT 16
 
-#define WIN_WIDTH  (CLIP_WIDTH<<1)
-#define WIN_HEIGHT (CLIP_HEIGHT<<1)
-
 static void dumpSurface(VADisplay display, VASurfaceID surface_id, const char* fileName)
 {
     VAStatus va_status;
@@ -238,7 +235,7 @@ int main(int argc,char **argv)
     
     va_status = vaCreateConfig(va::display, VAProfileMPEG2Main, VAEntrypointVLD,
                               &attrib, 1,&config_id);
-    CHECK_VASTATUS(va_status, "vaQueryConfigEntrypoints");
+    CHECK_VASTATUS(va_status, "vaCreateConfig");
 
     va_status = vaCreateSurfaces(
         va::display,

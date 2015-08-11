@@ -43,8 +43,6 @@
 #ifndef __OPENCV_CORE_VAAPI_HPP__
 #define __OPENCV_CORE_VAAPI_HPP__
 
-//#define HAVE_VAAPI (1) /* EAW: TODO: remove this line when cmake integration will be done */
-
 #ifndef __cplusplus
 #  error vaapi.hpp header must be compiled as C++
 #endif
@@ -64,9 +62,15 @@ typedef unsigned int VASurfaceID;
 #endif // !_VA_H_
 
 /** @addtogroup core_vaapi
-This section describes CL-VA interoperability.
+This section describes CL-VA (VA-API) interoperability.
 
-EAW: TODO
+To enable CL-VA interoperability support, configure OpenCV using CMake with WITH_VAAPI=ON . Currently VA-API is
+supported on Linux only. You should also install Intel Media Server Studio (MSS) to use this feature. You may
+have to specify the path(s) to MSS components for cmake in environment variables: VAAPI_MSDK_ROOT for Media SDK
+(default is "/opt/intel/mediasdk"), and VAAPI_IOCL_ROOT for Intel OpenCL (default is "/opt/intel/opencl").
+
+To use VA-API interoperability you should first create VADisplay (libva), and then call initializeContextFromVA()
+function to create OpenCL context and set up interoperability.
 */
 //! @{
 
