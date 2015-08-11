@@ -62,7 +62,7 @@ using namespace cv;
 #endif // HAVE_OPENCL
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
-#  include "va_ext.h" //<CL/va_ext.h>
+#  include <CL/va_ext.h>
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
 namespace cv { namespace vaapi {

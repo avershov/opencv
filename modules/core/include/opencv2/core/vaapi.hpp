@@ -43,7 +43,7 @@
 #ifndef __OPENCV_CORE_VAAPI_HPP__
 #define __OPENCV_CORE_VAAPI_HPP__
 
-#define HAVE_VAAPI (1) /* EAW: TODO: remove this line when cmake integration will be done */
+//#define HAVE_VAAPI (1) /* EAW: TODO: remove this line when cmake integration will be done */
 
 #ifndef __cplusplus
 #  error vaapi.hpp header must be compiled as C++

@@ -49,6 +49,10 @@
 
 #include "display.cpp.inc"
 
+#if !defined(HAVE_VAAPI)
+# define HAVE_VAAPI
+#endif // HAVE_VAAPI
+
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/core/vaapi.hpp"

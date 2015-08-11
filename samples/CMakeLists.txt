@@ -22,7 +22,7 @@ if((NOT ANDROID) AND HAVE_OPENGL)
   add_subdirectory(opengl)
 endif()
 
-if((NOT ANDROID) AND (NOT WIN32)) # AND HAVE_VAAPI
+if(UNIX AND NOT ANDROID AND HAVE_VAAPI)
   add_subdirectory(vaapi)
 endif()
 
