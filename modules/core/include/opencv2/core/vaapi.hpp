@@ -46,26 +46,29 @@ using namespace cv::ocl;
 
 // TODO static functions in the Context class
 /** @brief Creates OpenCL context from VA.
-@param display - VADisplay for which CL interop should be established.
+@param display    - VADisplay for which CL interop should be established.
+@param tryInterop - try to set up for interoperability, if true; set up for use slow copy if false.
 @return Returns reference to OpenCL Context
  */
-CV_EXPORTS Context& initializeContextFromVA(VADisplay display);
+CV_EXPORTS Context& initializeContextFromVA(VADisplay display, bool tryInterop = true);
 
 } // namespace cv::vaapi::ocl
 
 /** @brief Converts InputArray to VASurfaceID object.
+@param display - VADisplay object.
 @param src     - source InputArray.
 @param surface - destination VASurfaceID object.
 @param size    - size of image represented by VASurfaceID object.
  */
-CV_EXPORTS void convertToVASurface(InputArray src, VASurfaceID surface, Size size);
+CV_EXPORTS void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, Size size);
 
 /** @brief Converts VASurfaceID object to OutputArray.
+@param display - VADisplay object.
 @param surface - source VASurfaceID object.
 @param size    - size of image represented by VASurfaceID object.
 @param dst     - destination OutputArray.
  */
-CV_EXPORTS void convertFromVASurface(VASurfaceID surface, Size size, OutputArray dst);
+CV_EXPORTS void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, OutputArray dst);
 
 //! @}
 
