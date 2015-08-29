@@ -318,7 +318,14 @@ if(WITH_GPHOTO2)
   CHECK_MODULE(libgphoto2 HAVE_GPHOTO2)
 endif(WITH_GPHOTO2)
 
-# --- VA-API ---
+# --- VA & VA-API ---
+if(WITH_VA)
+  include("${OpenCV_SOURCE_DIR}/cmake/OpenCVFindVA.cmake")
+  if(VA_INCLUDE_DIR)
+    ocv_include_directories(${VA_INCLUDE_DIR})
+  endif()
+endif(WITH_VA)
+
 if(WITH_VAAPI)
   include("${OpenCV_SOURCE_DIR}/cmake/OpenCVFindVAAPI.cmake")
   if(VAAPI_IOCL_INCLUDE_DIR)

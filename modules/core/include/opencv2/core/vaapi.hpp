@@ -15,14 +15,14 @@
 #include "opencv2/core.hpp"
 #include "ocl.hpp"
 
-#if defined(HAVE_VAAPI)
+#if defined(HAVE_VA)
 # include "va/va.h"
-#else  // HAVE_VAAPI
+#else  // HAVE_VA
 # if !defined(_VA_H_)
     typedef void* VADisplay;
     typedef unsigned int VASurfaceID;
 # endif // !_VA_H_
-#endif // HAVE_VAAPI
+#endif // HAVE_VA
 
 namespace cv { namespace vaapi {
 

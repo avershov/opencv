@@ -205,6 +205,7 @@ OCV_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON 
 OCV_OPTION(WITH_DIRECTX        "Include DirectX support"                     ON   IF (WIN32 AND NOT WINRT) )
 OCV_OPTION(WITH_INTELPERC      "Include Intel Perceptual Computing support"  OFF  IF (WIN32 AND NOT WINRT) )
 OCV_OPTION(WITH_IPP_A          "Include Intel IPP_A support"                 OFF  IF (MSVC OR X86 OR X86_64) )
+OCV_OPTION(WITH_VA             "Include VA support"                          OFF  IF (UNIX AND NOT ANDROID) )
 OCV_OPTION(WITH_VAAPI          "Include VA-API support"                      OFF  IF (UNIX AND NOT ANDROID) )
 OCV_OPTION(WITH_GDAL           "Include GDAL Support"                        OFF  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 OCV_OPTION(WITH_GPHOTO2        "Include gPhoto2 library support"             ON   IF (UNIX AND NOT ANDROID) )
@@ -1065,6 +1066,10 @@ endif()
 if(DEFINED WITH_IPP_A)
 status("    Use IPP Async:"  HAVE_IPP_A       THEN "YES" ELSE NO)
 endif(DEFINED WITH_IPP_A)
+
+if(DEFINED WITH_VA)
+status("    Use VA:"            HAVE_VA          THEN "YES" ELSE NO)
+endif(DEFINED WITH_VA)
 
 if(DEFINED WITH_VAAPI)
 status("    Use Intel VA-API:"  HAVE_VAAPI       THEN "YES (MSDK: ${VAAPI_MSDK_ROOT}  OpenCL: ${VAAPI_IOCL_ROOT})" ELSE NO)

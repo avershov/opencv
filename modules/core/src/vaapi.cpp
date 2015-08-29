@@ -7,8 +7,11 @@
 
 #include "precomp.hpp"
 
-// TODO: need to redesign HAVE_VAAPI usage - va.h need to be separated
-#include <va/va.h>
+#ifdef HAVE_VA
+#  include <va/va.h>
+#else  // HAVE_VA
+#  define NO_VA_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA support (libva)")
+#endif // HAVE_VA
 
 #ifdef HAVE_VAAPI
 #else // HAVE_VAAPI
@@ -35,14 +38,14 @@ using namespace cv;
 
 namespace cv { namespace vaapi {
 
-static bool contextInitialized = false;
-
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
 
 static clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
 static clCreateFromVA_APIMediaSurfaceINTEL_fn       clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
 static clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn  clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
 static clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn  clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
+
+static bool contextInitialized = false;
 
 #endif // HAVE_VAAPI && HAVE_OPENCL
 
@@ -51,10 +54,11 @@ namespace ocl {
 Context& initializeContextFromVA(VADisplay display, bool tryInterop)
 {
     (void)display; (void)tryInterop;
-
+#if !defined(HAVE_VA)
+    NO_VA_SUPPORT_ERROR;
+#else  // !HAVE_VA
+# if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
     contextInitialized = false;
-
-#if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
     if (tryInterop)
     {
         cl_uint numPlatforms;
@@ -143,12 +147,13 @@ Context& initializeContextFromVA(VADisplay display, bool tryInterop)
             return ctx;
         }
     }
-#endif // HAVE_VAAPI && HAVE_OPENCL
+# endif // HAVE_VAAPI && HAVE_OPENCL
     {
-        contextInitialized = false;
+//        contextInitialized = false;
         Context& ctx = Context::getDefault(false);
         return ctx;
     }
+#endif  // !HAVE_VA
 }
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
@@ -181,6 +186,7 @@ static bool ocl_convert_bgr_to_nv12(cl_mem clBuffer, int step, int cols, int row
 
 } // namespace cv::vaapi::ocl
 
+#if defined(HAVE_VA)
 static void copy_convert_nv12_to_bgr(const VAImage& image, const unsigned char* buffer, Mat& bgr)
 {
     (void)image; (void)buffer; (void)bgr;
@@ -190,11 +196,14 @@ static void copy_convert_bgr_to_nv12(const VAImage& image, const Mat& bgr, unsig
 {
     (void)image; (void)bgr; (void)buffer;
 }
+#endif // HAVE_VA
 
 void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, Size size)
 {
     (void)display; (void)src; (void)surface; (void)size;
-
+#if !defined(HAVE_VA)
+    NO_VA_SUPPORT_ERROR;
+#else  // !HAVE_VA
     const int stype = CV_8UC4;
 
     int srcType = src.type();
@@ -209,7 +218,7 @@ void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, 
     CV_Assert(u.offset == 0);
     CV_Assert(u.isContinuous());
 
-#if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
+# if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
     if (contextInitialized)
     {
         cl_mem clBuffer = (cl_mem)u.handle(ACCESS_READ);
@@ -251,7 +260,7 @@ void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, 
             CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clReleaseMem failed (UV plane)");
     }
     else
-#endif
+# endif // HAVE_VAAPI && HAVE_OPENCL
     {
         VAStatus status = 0;
 
@@ -282,12 +291,15 @@ void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, 
         if (status != VA_STATUS_SUCCESS)
             CV_Error(cv::Error::StsError, "VA-API: vaDestroyImage failed");
     }
+#endif  // !HAVE_VA
 }
 
 void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, OutputArray dst)
 {
     (void)display; (void)surface; (void)dst; (void)size;
-
+#if !defined(HAVE_VA)
+    NO_VA_SUPPORT_ERROR;
+#else  // !HAVE_VA
     const int dtype = CV_8UC4;
 
     // TODO Need to specify ACCESS_WRITE here somehow to prevent useless data copying!
@@ -298,7 +310,7 @@ void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, Out
     CV_Assert(u.offset == 0);
     CV_Assert(u.isContinuous());
 
-#if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
+# if (defined(HAVE_VAAPI) && defined(HAVE_OPENCL))
     if (contextInitialized)
     {
         cl_mem clBuffer = (cl_mem)u.handle(ACCESS_WRITE);
@@ -340,7 +352,7 @@ void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, Out
             CV_Error(cv::Error::OpenCLApiCallError, "OpenCL: clReleaseMem failed (UV plane)");
     }
     else
-#endif
+# endif // HAVE_VAAPI && HAVE_OPENCL
     {
         VAStatus status = 0;
 
@@ -371,6 +383,7 @@ void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, Out
         if (status != VA_STATUS_SUCCESS)
             CV_Error(cv::Error::StsError, "VA-API: vaDestroyImage failed");
     }
+#endif  // !HAVE_VA
 }
 
 }} // namespace cv::vaapi
