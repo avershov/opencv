@@ -299,9 +299,9 @@ int main(int argc,char **argv)
     cv::Size size(CLIP_WIDTH,CLIP_HEIGHT);
     cv::UMat u;
 
-    cv::vaapi::convertFromVASurface(surface_id, size, u);
+    cv::vaapi::convertFromVASurface(va::display, surface_id, size, u);
     cv::blur(u, u, cv::Size(7, 7), cv::Point(-3, -3));
-    cv::vaapi::convertToVASurface(u, surface_id, size);
+    cv::vaapi::convertToVASurface(va::display, u, surface_id, size);
 
     dumpSurface(va::display, surface_id, argv[2]);
 
