@@ -13,11 +13,6 @@
 #  define NO_VA_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA support (libva)")
 #endif // HAVE_VA
 
-#ifdef HAVE_VAAPI
-#else // HAVE_VAAPI
-//#  define NO_VAAPI_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without VA-API support")
-#endif // HAVE_VAAPI
-
 using namespace cv;
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,8 +23,6 @@ using namespace cv;
 #  include "opencv2/core.hpp"
 #  include "opencv2/core/ocl.hpp"
 #  include "opencl_kernels_core.hpp"
-#else // HAVE_OPENCL
-//#  define NO_OPENCL_SUPPORT_ERROR CV_ErrorNoReturn(cv::Error::StsBadFunc, "OpenCV was build without OpenCL support")
 #endif // HAVE_OPENCL
 
 #if defined(HAVE_VAAPI) && defined(HAVE_OPENCL)
@@ -149,7 +142,6 @@ Context& initializeContextFromVA(VADisplay display, bool tryInterop)
     }
 # endif // HAVE_VAAPI && HAVE_OPENCL
     {
-//        contextInitialized = false;
         Context& ctx = Context::getDefault(false);
         return ctx;
     }
@@ -187,6 +179,8 @@ static bool ocl_convert_bgr_to_nv12(cl_mem clBuffer, int step, int cols, int row
 } // namespace cv::vaapi::ocl
 
 #if defined(HAVE_VA)
+const int NCHANNELS = 3;
+
 static void copy_convert_nv12_to_bgr(const VAImage& image, const unsigned char* buffer, Mat& bgr)
 {
     const float d1 = 16.0f;
@@ -238,25 +232,21 @@ static void copy_convert_nv12_to_bgr(const VAImage& image, const unsigned char* 
             float guv = coeffs[3]*V + coeffs[2]*U;
             float buv = coeffs[1]*U;
 
-            dst0[(x+0)*4+0] = saturate_cast<unsigned char>(Y0 + buv);
-            dst0[(x+0)*4+1] = saturate_cast<unsigned char>(Y0 + guv);
-            dst0[(x+0)*4+2] = saturate_cast<unsigned char>(Y0 + ruv);
-            dst0[(x+0)*4+3] = 0;
+            dst0[(x+0)*NCHANNELS+0] = saturate_cast<unsigned char>(Y0 + buv);
+            dst0[(x+0)*NCHANNELS+1] = saturate_cast<unsigned char>(Y0 + guv);
+            dst0[(x+0)*NCHANNELS+2] = saturate_cast<unsigned char>(Y0 + ruv);
 
-            dst0[(x+1)*4+0] = saturate_cast<unsigned char>(Y1 + buv);
-            dst0[(x+1)*4+1] = saturate_cast<unsigned char>(Y1 + guv);
-            dst0[(x+1)*4+2] = saturate_cast<unsigned char>(Y1 + ruv);
-            dst0[(x+1)*4+3] = 0;
+            dst0[(x+1)*NCHANNELS+0] = saturate_cast<unsigned char>(Y1 + buv);
+            dst0[(x+1)*NCHANNELS+1] = saturate_cast<unsigned char>(Y1 + guv);
+            dst0[(x+1)*NCHANNELS+2] = saturate_cast<unsigned char>(Y1 + ruv);
 
-            dst1[(x+0)*4+0] = saturate_cast<unsigned char>(Y2 + buv);
-            dst1[(x+0)*4+1] = saturate_cast<unsigned char>(Y2 + guv);
-            dst1[(x+0)*4+2] = saturate_cast<unsigned char>(Y2 + ruv);
-            dst1[(x+0)*4+3] = 0;
+            dst1[(x+0)*NCHANNELS+0] = saturate_cast<unsigned char>(Y2 + buv);
+            dst1[(x+0)*NCHANNELS+1] = saturate_cast<unsigned char>(Y2 + guv);
+            dst1[(x+0)*NCHANNELS+2] = saturate_cast<unsigned char>(Y2 + ruv);
 
-            dst1[(x+1)*4+0] = saturate_cast<unsigned char>(Y3 + buv);
-            dst1[(x+1)*4+1] = saturate_cast<unsigned char>(Y3 + guv);
-            dst1[(x+1)*4+2] = saturate_cast<unsigned char>(Y3 + ruv);
-            dst1[(x+1)*4+3] = 0;
+            dst1[(x+1)*NCHANNELS+0] = saturate_cast<unsigned char>(Y3 + buv);
+            dst1[(x+1)*NCHANNELS+1] = saturate_cast<unsigned char>(Y3 + guv);
+            dst1[(x+1)*NCHANNELS+2] = saturate_cast<unsigned char>(Y3 + ruv);
         }
 
         srcY0 = srcY1 + srcStepY;
@@ -296,21 +286,21 @@ static void copy_convert_bgr_to_nv12(const VAImage& image, const Mat& bgr, unsig
 
         for (int x = 0; x < bgr.cols; x += 2)
         {
-            float B0 = float(src0[(x+0)*4+0]);
-            float G0 = float(src0[(x+0)*4+1]);
-            float R0 = float(src0[(x+0)*4+2]);
+            float B0 = float(src0[(x+0)*NCHANNELS+0]);
+            float G0 = float(src0[(x+0)*NCHANNELS+1]);
+            float R0 = float(src0[(x+0)*NCHANNELS+2]);
 
-            float B1 = float(src0[(x+1)*4+0]);
-            float G1 = float(src0[(x+1)*4+1]);
-            float R1 = float(src0[(x+1)*4+2]);
+            float B1 = float(src0[(x+1)*NCHANNELS+0]);
+            float G1 = float(src0[(x+1)*NCHANNELS+1]);
+            float R1 = float(src0[(x+1)*NCHANNELS+2]);
 
-            float B2 = float(src1[(x+0)*4+0]);
-            float G2 = float(src1[(x+0)*4+1]);
-            float R2 = float(src1[(x+0)*4+2]);
+            float B2 = float(src1[(x+0)*NCHANNELS+0]);
+            float G2 = float(src1[(x+0)*NCHANNELS+1]);
+            float R2 = float(src1[(x+0)*NCHANNELS+2]);
 
-            float B3 = float(src1[(x+1)*4+0]);
-            float G3 = float(src1[(x+1)*4+1]);
-            float R3 = float(src1[(x+1)*4+2]);
+            float B3 = float(src1[(x+1)*NCHANNELS+0]);
+            float G3 = float(src1[(x+1)*NCHANNELS+1]);
+            float R3 = float(src1[(x+1)*NCHANNELS+2]);
 
             float Y0 = coeffs[0]*R0 + coeffs[1]*G0 + coeffs[2]*B0 + d1;
             float Y1 = coeffs[0]*R1 + coeffs[1]*G1 + coeffs[2]*B1 + d1;
@@ -342,7 +332,7 @@ void convertToVASurface(VADisplay display, InputArray src, VASurfaceID surface, 
 #if !defined(HAVE_VA)
     NO_VA_SUPPORT_ERROR;
 #else  // !HAVE_VA
-    const int stype = CV_8UC4;
+    const int stype = CV_8UC3;
 
     int srcType = src.type();
     CV_Assert(srcType == stype);
@@ -438,7 +428,7 @@ void convertFromVASurface(VADisplay display, VASurfaceID surface, Size size, Out
 #if !defined(HAVE_VA)
     NO_VA_SUPPORT_ERROR;
 #else  // !HAVE_VA
-    const int dtype = CV_8UC4;
+    const int dtype = CV_8UC3;
 
     // TODO Need to specify ACCESS_WRITE here somehow to prevent useless data copying!
     dst.create(size, dtype);
